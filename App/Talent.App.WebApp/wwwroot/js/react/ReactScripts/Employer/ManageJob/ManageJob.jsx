@@ -5,7 +5,8 @@ import LoggedInBanner from '../../Layout/Banner/LoggedInBanner.jsx';
 import { LoggedInNavigation } from '../../Layout/LoggedInNavigation.jsx';
 import { JobSummaryCard } from './JobSummaryCard.jsx';
 import { BodyWrapper, loaderData } from '../../Layout/BodyWrapper.jsx';
-import { Pagination, Icon, Dropdown, Checkbox, Accordion, Form, Segment, Card, Label, Button } from 'semantic-ui-react';
+import { Pagination, Icon, Dropdown, Checkbox, Accordion, Form, Segment, Header, Card, Label, Button } from 'semantic-ui-react';
+
 
 export default class ManageJob extends React.Component {
     constructor(props) {
@@ -17,6 +18,7 @@ export default class ManageJob extends React.Component {
         this.state = {
             loadJobs: [],
             loaderData: loader,
+            jobDetail: [],
             activePage: 1,
             sortBy: {
                 date: "desc"
@@ -26,29 +28,32 @@ export default class ManageJob extends React.Component {
                 showClosed: false,
                 showDraft: true,
                 showExpired: true,
-                showUnexpired: true
+                showUnexpired: true,
             },
             totalPages: 1,
-            activeIndex: ""
+            activeIndex: "",
+            choosenFilter: "Choose Filter",
+            sortFilter: "Newest First",
         }
         this.loadData = this.loadData.bind(this);
         this.init = this.init.bind(this);
         this.loadNewData = this.loadNewData.bind(this);
-        //your functions go here
+        this.handleCloseJob = this.handleCloseJob.bind(this);
+        this.handleFilterChange = this.handleFilterChange.bind(this);
+        this.handleSortFilterChange = this.handleSortFilterChange.bind(this);
     };
 
     init() {
         //let loaderData = TalentUtil.deepCopy(this.state.loaderData)
         //loaderData.isLoading = false;
         //this.setState({ loaderData });//comment this
-
         //set loaderData.isLoading to false after getting data
-        this.loadData(() =>
-            this.setState({ loaderData }),
-            loaderData.isLoading = false,
+        this.loadData(() => {
+            let loaderData = TalentUtil.deepCopy(this.state.loaderData);
+            loaderData.isLoading = false;
+            this.setState({ loaderData });
+        }
         )
-        
-        //console.log(this.state.loaderData)
     }
 
     componentDidMount() {
@@ -56,11 +61,9 @@ export default class ManageJob extends React.Component {
     };
 
     loadData(callback) {
-        var link = 'http://localhost:51689/listing/listing/getSortedEmployerJobs';
         var cookies = Cookies.get('talentAuthToken');
-       // your ajax call and other logic goes here
         $.ajax({
-            url: link,
+            url: 'http://localhost:51689/listing/listing/getSortedEmployerJobs',
             headers: {
                 'Authorization': 'Bearer ' + cookies,
                 'Content-Type': 'application/json'
@@ -75,14 +78,13 @@ export default class ManageJob extends React.Component {
                 showClosed: this.state.filter.showClosed,
                 showDraft: this.state.filter.showDraft,
                 showExpired: this.state.filter.showExpired,
-                showUnexpired: this.state.filter.showUnexpired,
+                showUnexpired: this.state.filter.showUnexpired
             },
             success: function (res) {
-                console.log("res", res);
                 if (res.myJobs) {
                     this.state.loadJobs = res.myJobs
                 }
-                console.log("Jobs", this.state.loadJobs);
+                console.log("result Jobs", this.state.loadJobs);
                 callback();
             }.bind(this),
             error: function (res) {
@@ -90,6 +92,114 @@ export default class ManageJob extends React.Component {
                 callback();
             }
         })
+    }
+
+    handleFilterChange(e, { value }) {
+        if (this.state.choosenFilter !== value) {
+            if (value === "Choose Filter") {
+                this.setState({
+                    filter: {
+                        showActive: true,
+                        showClosed: false,
+                        showDraft: true,
+                        showExpired: true,
+                        showUnexpired: true
+                    },
+                    choosenFilter: value,
+                }, this.init);
+            } else if (value === "showActive") {
+                this.setState({
+                    filter: {
+                        showActive: true,
+                        showClosed: false,
+                        showDraft: true,
+                        showExpired: true,
+                        showUnexpired: true
+                    },
+                    choosenFilter: value,
+                }, this.init);
+            } else if (value === "showClosed") {
+                this.setState({
+                    filter: {
+                        showActive: false,
+                        showClosed: true,
+                        showDraft: true,
+                        showExpired: true,
+                        showUnexpired: true
+                    },
+                    choosenFilter: value,
+                }, this.init);
+            } else if (value === "showExpired") {
+                this.setState({
+                    filter: {
+                        showActive: true,
+                        showClosed: false,
+                        showDraft: true,
+                        showExpired: true,
+                        showUnexpired: false
+                    },
+                    choosenFilter: value,
+                }, this.init);
+            } else if (value === "showUnexpired") {
+                this.setState({
+                    filter: {
+                        showActive: true,
+                        showClosed: false,
+                        showDraft: true,
+                        showExpired: false,
+                        showUnexpired: true
+                    },
+                    choosenFilter: value,
+                }, this.init);
+            }
+        }
+    }
+
+    handleSortFilterChange(e, { value }) {
+        if (this.state.sortFilter !== value) {
+            if (value === "newestJobs") {
+                this.setState({
+                    sortBy: {
+                        date: "desc"
+                    },
+                    sortFilter: value,
+                }, this.init);
+            } else if (value === "oldestJobs") {
+                this.setState({
+                    sortBy: {
+                        date: "asc"
+                    },
+                    sortFilter: value,
+                }, this.init);
+            }
+        }
+    }
+
+    handleCloseJob(id) {
+        var cookies = Cookies.get('talentAuthToken');
+        $.ajax({
+            url: 'http://localhost:51689/listing/listing/closeJob',
+            headers: {
+                'Authorization': 'Bearer ' + cookies,
+                'Content-Type': 'application/json'
+            },
+            type: "POST",
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify(id),
+            success: function (res) {
+                if (res.success) {
+                    TalentUtil.notification.show(res.message, "success", null, null);
+                }
+                else {
+                    TalentUtil.notification.show(res.message, "error", null, null);
+                }
+            }.bind(this),
+            error: function (res) {
+                TalentUtil.notification.show("Error while closing job", "error", null, null);
+            }.bind(this)
+        })
+        this.init();
     }
 
     loadNewData(data) {
@@ -106,80 +216,94 @@ export default class ManageJob extends React.Component {
         });
     }
 
+
     render() {
-        let list = this.state.loadJobs;
-        let cardData = null;
-        var currentDate = new Date();
-        if (list != "") {
-            cardData = list.map(card =>
-                <Card key={card.id}>
-                    <Card.Content>
-                        <Card.Header>{card.title}</Card.Header>
-                        <Label color='black' ribbon='right'><Icon name='user' />0</Label>
-                        <Card.meta>{card.location.city}, {card.location.country}</Card.meta>
-                        <Card.Description>{card.summary}</Card.Description>
-                    </Card.Content>
-                    <Card.Content extra>
-                        <span className="left floated">
-                            {card.expiryDate > currentDate.toISOString() ?
-                                <Label color="red">Expired</Label> : <label color="blue">Unexpired</label>
-                            }
-                        </span>
-                        <span className="right floated">
-                            <div className='ui three button'>
-                                <Button basic color='blue'>Close</Button>
-                                <Button basic color='blue'>Edit</Button>
-                                <Button basic color='blue'>Copy</Button>
-                            </div>
-                        </span>
-                    </Card.Content>
-                </Card>
-                )
+        let jobList = this.state.loadJobs;
+        let totalPages = this.state.totalPages;
+        let activeIndex = this.state.activeIndex;
+        let jobDetails = null;
+        const filterOptions = [
+            { key: 'Choose Filter', text: 'Choose Filter', value: 'Choose Filter' },
+            { key: 'showActive', text: 'Active Jobs', value: 'showActive' },
+            { key: 'showClosed', text: 'Closed Jobs', value: 'showClosed' },
+            { key: 'showExpired', text: 'Expired Jobs', value: 'showExpired' },
+            { key: 'showUnexpired', text: 'Unexpired Jobs', value: 'showUnexpired' }
+        ];
+
+        const sortOptions = [
+            { key: 'newestJobs', text: 'Newest First', value: 'newestJobs' },
+            { key: 'oldestJobs', text: 'Oldest First', value: 'oldestJobs' }
+        ];
+
+        if (jobList != "") {
+            jobDetails = jobList.map((item) => (
+                <JobSummaryCard
+                    key={item.id}
+                    id={item.id}
+                    title={item.title}
+                    summary={item.summary}
+                    country={item.location.country}
+                    city={item.location.city}
+                    closeJob={this.handleCloseJob}
+                />
+            )
+            )
         }
         else {
-            cardData = "No Jobs Found";
+            jobDetails = <div> No Jobs Found</div>;
+            totalPages = 0;
         }
 
-        const filterOptions = [
-            { key: 'all', text: 'All', value: 'all' },
-            { key: 'active', text: 'Active', value: 'active' },
-            { key: 'closed', text: 'Closed', value: 'closed' },
-            { key: 'draft', text: 'Draft', value: 'draft' },
-            { key: 'expired', text: 'Expired', value: 'expired' },
-            { key: 'unexpired', text: 'Unexpired', value: 'unexpired' },
-        ]
-        const sortOptions = [
-            { key: 'newest', text: 'Newest first', value: 'newest' },
-            { key: 'oldest', text: 'Oldest first', value: 'oldest' },
-        ]
 
         return (
             <BodyWrapper reload={this.init} loaderData={this.state.loaderData}>
+
                 <div className="ui container">
-                    <h2>List of Jobs</h2>              
-                <div>
+
+                    <h1>List of Jobs</h1>
                     <span>
                         <Icon name='filter' />
-                         Filter: &nbsp;&nbsp;
-                        <Dropdown placeholder='Choose Filter' inline options={filterOptions} />
+                        Filter:
+                        <Dropdown inline
+                            options={filterOptions}
+                            onChange={this.handleFilterChange}
+                            value={this.state.choosenFilter}
+                        />
                     </span>
                     <span>
-                        <Icon name='alternate outline calendar' />
-                         Sort by Date: &nbsp;&nbsp;
-                        <Dropdown inline options={sortOptions} defaultValue={sortOptions[0].value} />
+                        <Icon name='calendar alternate' />
+                        Sort by date:
+                        <Dropdown inline
+                            options={sortOptions}
+                            onChange={this.handleSortFilterChange}
+                            value={this.state.sortFilter}
+                        />
                     </span>
-                </div>
-                    <br />
-                    <div className="ui three column">
-                        {cardData}
+
+                    <br /> <br />
+
+                    <Card.Group itemsPerRow={3}>
+                        {jobDetails}
+                    </Card.Group>
+
+                    <br /><br />
+
+                    <div style={{ textAlign: "center" }}>
+                        <Pagination
+                            defaultActivePage={activeIndex}
+                            ellipsisItem={{ content: <Icon name='ellipsis horizontal' />, icon: true }}
+                            firstItem={{ content: <Icon name='angle double left' />, icon: true }}
+                            lastItem={{ content: <Icon name='angle double right' />, icon: true }}
+                            prevItem={{ content: <Icon name='angle left' />, icon: true }}
+                            nextItem={{ content: <Icon name='angle right' />, icon: true }}
+                            totalPages={totalPages}
+                        />
                     </div>
-                    <br />
-                    <div align='center'>
-                        <Pagination totalPages='1' defaultActivePage='1' />
-                    </div>
-                    <br />
+
+                    <br /><br /><br />
                 </div>
+
             </BodyWrapper>
-        )
+        );
     }
 }
