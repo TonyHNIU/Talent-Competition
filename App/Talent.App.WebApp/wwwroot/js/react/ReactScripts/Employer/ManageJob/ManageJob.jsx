@@ -18,7 +18,6 @@ export default class ManageJob extends React.Component {
         this.state = {
             loadJobs: [],
             loaderData: loader,
-            jobDetail: [],
             activePage: 1,
             sortBy: {
                 date: "desc"
@@ -32,15 +31,10 @@ export default class ManageJob extends React.Component {
             },
             totalPages: 1,
             activeIndex: "",
-            choosenFilter: "Choose Filter",
-            sortFilter: "Newest First",
         }
         this.loadData = this.loadData.bind(this);
         this.init = this.init.bind(this);
         this.loadNewData = this.loadNewData.bind(this);
-        this.handleCloseJob = this.handleCloseJob.bind(this);
-        this.handleFilterChange = this.handleFilterChange.bind(this);
-        this.handleSortFilterChange = this.handleSortFilterChange.bind(this);
     };
 
     init() {
@@ -94,113 +88,6 @@ export default class ManageJob extends React.Component {
         })
     }
 
-    handleFilterChange(e, { value }) {
-        if (this.state.choosenFilter !== value) {
-            if (value === "Choose Filter") {
-                this.setState({
-                    filter: {
-                        showActive: true,
-                        showClosed: false,
-                        showDraft: true,
-                        showExpired: true,
-                        showUnexpired: true
-                    },
-                    choosenFilter: value,
-                }, this.init);
-            } else if (value === "showActive") {
-                this.setState({
-                    filter: {
-                        showActive: true,
-                        showClosed: false,
-                        showDraft: true,
-                        showExpired: true,
-                        showUnexpired: true
-                    },
-                    choosenFilter: value,
-                }, this.init);
-            } else if (value === "showClosed") {
-                this.setState({
-                    filter: {
-                        showActive: false,
-                        showClosed: true,
-                        showDraft: true,
-                        showExpired: true,
-                        showUnexpired: true
-                    },
-                    choosenFilter: value,
-                }, this.init);
-            } else if (value === "showExpired") {
-                this.setState({
-                    filter: {
-                        showActive: true,
-                        showClosed: false,
-                        showDraft: true,
-                        showExpired: true,
-                        showUnexpired: false
-                    },
-                    choosenFilter: value,
-                }, this.init);
-            } else if (value === "showUnexpired") {
-                this.setState({
-                    filter: {
-                        showActive: true,
-                        showClosed: false,
-                        showDraft: true,
-                        showExpired: false,
-                        showUnexpired: true
-                    },
-                    choosenFilter: value,
-                }, this.init);
-            }
-        }
-    }
-
-    handleSortFilterChange(e, { value }) {
-        if (this.state.sortFilter !== value) {
-            if (value === "newestJobs") {
-                this.setState({
-                    sortBy: {
-                        date: "desc"
-                    },
-                    sortFilter: value,
-                }, this.init);
-            } else if (value === "oldestJobs") {
-                this.setState({
-                    sortBy: {
-                        date: "asc"
-                    },
-                    sortFilter: value,
-                }, this.init);
-            }
-        }
-    }
-
-    handleCloseJob(id) {
-        var cookies = Cookies.get('talentAuthToken');
-        $.ajax({
-            url: 'http://localhost:51689/listing/listing/closeJob',
-            headers: {
-                'Authorization': 'Bearer ' + cookies,
-                'Content-Type': 'application/json'
-            },
-            type: "POST",
-            contentType: "application/json",
-            dataType: "json",
-            data: JSON.stringify(id),
-            success: function (res) {
-                if (res.success) {
-                    TalentUtil.notification.show(res.message, "success", null, null);
-                }
-                else {
-                    TalentUtil.notification.show(res.message, "error", null, null);
-                }
-            }.bind(this),
-            error: function (res) {
-                TalentUtil.notification.show("Error while closing job", "error", null, null);
-            }.bind(this)
-        })
-        this.init();
-    }
 
     loadNewData(data) {
         var loader = this.state.loaderData;
@@ -244,7 +131,6 @@ export default class ManageJob extends React.Component {
                     summary={item.summary}
                     country={item.location.country}
                     city={item.location.city}
-                    closeJob={this.handleCloseJob}
                 />
             )
             )
@@ -257,37 +143,23 @@ export default class ManageJob extends React.Component {
 
         return (
             <BodyWrapper reload={this.init} loaderData={this.state.loaderData}>
-
                 <div className="ui container">
-
                     <h1>List of Jobs</h1>
                     <span>
                         <Icon name='filter' />
                         Filter:
-                        <Dropdown inline
-                            options={filterOptions}
-                            onChange={this.handleFilterChange}
-                            value={this.state.choosenFilter}
-                        />
+                        <Dropdown inline options={filterOptions}/>
                     </span>
                     <span>
                         <Icon name='calendar alternate' />
                         Sort by date:
-                        <Dropdown inline
-                            options={sortOptions}
-                            onChange={this.handleSortFilterChange}
-                            value={this.state.sortFilter}
-                        />
+                        <Dropdown inline options={sortOptions}/>
                     </span>
-
                     <br /> <br />
-
                     <Card.Group itemsPerRow={3}>
                         {jobDetails}
                     </Card.Group>
-
                     <br /><br />
-
                     <div style={{ textAlign: "center" }}>
                         <Pagination
                             defaultActivePage={activeIndex}
@@ -299,10 +171,8 @@ export default class ManageJob extends React.Component {
                             totalPages={totalPages}
                         />
                     </div>
-
                     <br /><br /><br />
                 </div>
-
             </BodyWrapper>
         );
     }
